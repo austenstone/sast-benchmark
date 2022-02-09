@@ -1,4 +1,27 @@
 #!/bin/bash
+
+run_snyk() {
+    local repo=$1
+    local start=$SECONDS
+
+    snyk code test .
+
+    duration=$(( SECONDS - start ))
+    echo "Snyk test took $duration seconds for repo $repo" >> ../benchmark.txt
+}
+
+run_codeql() {
+    local repo=$1
+    local start=$SECONDS
+
+    codeql database create codeqldb --language=javascript
+    codeql database analyze codeqldb --format=sarif-latest --output codeqlresults
+    
+    duration=$(( SECONDS - start ))
+    echo "CodeQL test took $duration seconds for repo $repo" >> ../benchmark.txt
+}
+
+> benchmark.txt
 while read -r line
 do
     repo_name=$(echo $line | sed -e 's/.*\///g')
@@ -6,16 +29,9 @@ do
     git clone https://github.com/$line
 
     cd $repo_name
-    
-    start=$SECONDS
 
-    snyk code test .
+    run_snyk $repo_name &
+    # run_codeql $repo_name &
 
-    duration=$(( SECONDS - start ))
-    echo "Snyk test took $duration seconds"
-    echo $duration >> ../benchmark.txt
-
-    # codeql database create codeqldb --language=javascript
-    # codeql database analyze codeqldb --format=sarif-latest --output codeqlresults
     cd ..
 done < repos
