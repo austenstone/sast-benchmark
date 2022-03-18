@@ -4,10 +4,10 @@ run_snyk() {
     local repo=$1
     local start=$SECONDS
 
-    snyk code test .
+    snyk code test . --sarif-file-output=../snyk-$repo.sarif
 
     duration=$(( SECONDS - start ))
-    echo "Snyk test took $duration seconds for repo $repo" >> ../benchmark.txt
+    echo "snyk,$repo,$duration" >> ../benchmark.txt
 }
 
 run_codeql() {
@@ -15,10 +15,10 @@ run_codeql() {
     local start=$SECONDS
 
     codeql database create codeqldb --language=javascript
-    codeql database analyze codeqldb --format=sarif-latest --output codeqlresults
+    codeql database analyze codeqldb --download --format=sarif-latest --output=../codeql-out.sarif
     
     duration=$(( SECONDS - start ))
-    echo "CodeQL test took $duration seconds for repo $repo" >> ../benchmark.txt
+    echo "codeql,$repo,$duration" >> ../benchmark.txt
 }
 
 > benchmark.txt
@@ -31,7 +31,7 @@ do
     cd $repo_name
 
     run_snyk $repo_name &
-    # run_codeql $repo_name &
+    run_codeql $repo_name &
 
     cd ..
 done < repos
